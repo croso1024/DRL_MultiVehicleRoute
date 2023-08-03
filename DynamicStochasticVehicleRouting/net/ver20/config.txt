@@ -1,0 +1,5 @@
+Ver 16
+KNN = 8 
+Jumping knowledge --> cat 
+Jumping knowledge-aggregate --> linear without norm & activation
+GNN --> GraphConv 

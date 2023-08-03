@@ -1,0 +1,5 @@
+Ver14 
+KNN = 15 
+Jumping knowledge --> cat 
+Jumping knowledge-aggregate --> linear without norm & activation
+GNN --> GCN 

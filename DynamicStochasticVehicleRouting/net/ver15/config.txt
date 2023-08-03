@@ -1,0 +1,6 @@
+Ver15
+KNN = 5 
+Radius = 0.3  
+Jumping knowledge --> cat 
+Jumping knowledge-aggregate --> linear without norm & activation
+GNN --> GCN 
