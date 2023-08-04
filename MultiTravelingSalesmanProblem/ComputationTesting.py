@@ -11,7 +11,7 @@ import argparse ,torch,time  , copy
 from net.ver20.PolicyNetwork import PolicyNetwork 
 import numpy as np 
 from tqdm import tqdm 
-import os 
+import os ,json 
 from utils.ValidationDataset import * 
 
 def env_maker_validate(batch_size , batch_data  , StateEQ    ): 
@@ -50,6 +50,7 @@ def Greedy(Agent,validation_set , batch_size , vehicle_nums ):
     print(f"Greedy Complete in {consumption_time:.3f} seconds")
     print(f"Average minSum : {average_tour_length/len(validation_set):.3f}")
     print(f"-----------------------------------------")
+    return {"obj":(average_tour_length/len(validation_set)).item() , "time":consumption_time/arg.dataset_size }
     
 def PMPO(Agent,validation_set , batch_size , vehicle_nums  , maximum_batch_size=None ): 
     assert batch_size % 8 ==0 , "Batch size not match PMPO"
@@ -80,6 +81,7 @@ def PMPO(Agent,validation_set , batch_size , vehicle_nums  , maximum_batch_size=
     print(f"PMPO Complete in {consumption_time:.3f} seconds")
     print(f"Average objective : {average_tour_length/len(PMPO_dataset):.3f}")
     print(f"-----------------------------------------")
+    return {"obj":(average_tour_length/len(PMPO_dataset)).item() , "time":consumption_time/arg.dataset_size}
 
 def ORTools_MTSP(validation_set , batch_size ,vehicle_num , time_limit=1 ,algo="GD"):
     algo_table = {
@@ -114,6 +116,7 @@ def ORTools_MTSP(validation_set , batch_size ,vehicle_num , time_limit=1 ,algo="
     print(f"ORTools-{algo}({time_limit}s) Complete in {consumption_time:.3f} seconds")
     print(f"Average minSum : {average_tour_length:.3f}")
     print(f"-----------------------------------------")
+    return {"obj":average_tour_length , "time":consumption_time/arg.dataset_size}
 
 if __name__ == "__main__": 
     
@@ -124,7 +127,7 @@ if __name__ == "__main__":
     argParser.add_argument("-d","--dataset_size", type=int , default=32)
     argParser.add_argument("-b","--batch_size", type=int , default=8) 
     argParser.add_argument("-v","--vehicle_num", type=int , default=5) 
-    argParser.add_argument("-m","--model", type=str , default="RL_agent") 
+    argParser.add_argument("-m","--model", type=str , default="N50V5") 
     argParser.add_argument("-p","--data_path",type=str,default="Dataset/")
     
     arg = argParser.parse_args()
@@ -136,7 +139,13 @@ if __name__ == "__main__":
     highbound_nodes = arg.highbound
     interval = arg.interval 
     assert  (highbound_nodes > lowerbound_nodes) and not (highbound_nodes-lowerbound_nodes) % interval 
-    model_path = "./model/MultiTravelingSalesmanProblem/checkpoint/" + arg.model + ".pth"
+    
+    model = {
+                "N50V5":"N50V5_v20k12_0605.pth" , "N50V10":"N50V10_v20k12_0802.pth",
+                "N100V5":"N100V5_v20k12_0726.pth" , "N100V10":"N100V10_v20k12_0729.pth" ,
+            }
+    
+    model_path = "./model/MultiTravelingSalesmanProblem/checkpoint/" + model[arg.model]
     data_path = "./model/MultiTravelingSalesmanProblem/" + arg.data_path 
     ##################### Prepare Model   ######################
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -151,7 +160,6 @@ if __name__ == "__main__":
         clip_coe=10,
         temp=1
     ).to(device) 
-    model_path = "./model/MultiTravelingSalesmanProblem/checkpoint/N50_v20k12_0605.pth"
     Agent.load_state_dict(torch.load(model_path))
     total = sum([parameters.nelement() for parameters in Agent.parameters()]) 
     print(f"Parameters of the Model : {total}")
@@ -160,14 +168,11 @@ if __name__ == "__main__":
     
     #################### Create log #######################
     Method = ["ORTools-GD" , "Our-Greedy","Our-POMO"]
-    Logger = { method:{  str(nodes) for nodes in range(
-        lowerbound_nodes , highbound_nodes+interval , interval ) 
-    }   for method in Method  }
+    Logger = { method:{  str(nodes):None for nodes in range(lowerbound_nodes , highbound_nodes+interval , interval ) }   for method in Method  }
     print(f"Initilize logger : {Logger}") 
     
     
     ################### Start testing ######################
-    
    
     for node_num in tqdm(range(lowerbound_nodes , highbound_nodes+interval , interval)): 
         CreateDataset(dataset_size=dataset_size , batch_size=batch_size,node_num =node_num , vehicle_num=vehicle_num)
@@ -182,16 +187,23 @@ if __name__ == "__main__":
             maximum_batch_size=maximum_batch_size  , PMPO=True
         )
         print("Start")
-        Greedy(Agent=Agent , validation_set=copy.deepcopy(dataset) , batch_size=batch_size,vehicle_nums=vehicle_num)
         
-        PMPO(Agent=Agent  ,validation_set=copy.deepcopy(PMPO_dataset) , batch_size=batch_size , vehicle_nums=vehicle_num , 
-            maximum_batch_size=maximum_batch_size)
+        Logger["Our-Greedy"][str(node_num)] = Greedy(Agent=Agent , validation_set=copy.deepcopy(dataset) , batch_size=batch_size,vehicle_nums=vehicle_num)
+        
+        Logger["Our-POMO"][str(node_num)]   = PMPO(Agent=Agent  ,validation_set=copy.deepcopy(PMPO_dataset) , batch_size=batch_size , vehicle_nums=vehicle_num , 
+                                                 maximum_batch_size=maximum_batch_size)
 
-        ORTools_MTSP(validation_set=dataset , batch_size=batch_size , vehicle_num=vehicle_num,time_limit=10000 ,algo='GD')
+        Logger["ORTools-GD"][str(node_num)]  = ORTools_MTSP(validation_set=dataset , batch_size=batch_size , vehicle_num=vehicle_num,time_limit=10000 ,algo='GD')
 
-        
-        if os.path.isfile(data_path+DataName) : 
-            print(f"Remove data : {data_path + DataName}")   
-            os.remove(data_path+DataName)
-        
+    Logger.update({"vehicle_num":vehicle_num , "Model":arg.model})
+    print(Logger) 
+    with open("./model/MultiTravelingSalesmanProblem/ComputationLogger.json" , "w") as jsonfile : 
+        json.dump(Logger , jsonfile)
+        print("Logger Complete !")
+    
+    if os.path.isfile(data_path+DataName) : 
+        print(f"Remove data : {data_path + DataName}")   
+        os.remove(data_path+DataName)
+    else : 
+        print("not find the data to remove")
         
