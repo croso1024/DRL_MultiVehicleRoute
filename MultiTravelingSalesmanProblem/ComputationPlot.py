@@ -30,12 +30,21 @@ def performance_diagram(file_path , filter_word):
         # print(f"Nodes-data : {nodes_data}\n")
         # print(f"Score list : {score_list}")
         method_score.update({method:score_list})
-        line_style = "dotted" if "V10" in method else "solid"
-        plt.plot([ int(i) for i in nodes_data] , score_list ,label=method, marker="o" , linestyle=line_style )
+        
+        if not "OR" in method : 
+            if "V5" in method : marker = "^"
+            elif "V10" in method : marker = "."
+            line_style = "solid" if "-P" in method else "dotted"
+            
+        else : 
+            marker = "s" 
+            line_style = 'dashdot'
+        
+        plt.plot([ int(i) for i in nodes_data] , score_list ,label=method, marker=marker , linestyle=line_style )
 
     plt.xlabel("Node-num")
     plt.ylabel("Objective Value")
-    plt.title(f"Generlization ability test : {vehicle_num} vehicle") 
+    plt.title(f"Generlization ability ({vehicle_num} vehicle data)") 
     plt.legend()
     plt.grid(True) 
     
@@ -92,6 +101,5 @@ def efficiency_diagram(*file_path , filter_word):
     plt.show()
     
     
-# performance_diagram("./model/MultiTravelingSalesmanProblem/ComputationLogger.json" , filter_word=["V10"]) 
-efficiency_diagram("./model/MultiTravelingSalesmanProblem/ComputationLogger.json",
-                   filter_word=["N100","V10"])
+performance_diagram("./model/MultiTravelingSalesmanProblem/Computation_V5.json" , filter_word=[]) 
+# efficiency_diagram("./model/MultiTravelingSalesmanProblem/Computation_V5.json",filter_word=["N100","V10"])
