@@ -145,7 +145,6 @@ if __name__ == "__main__":
                 "N100V5":"N100V5_v20k12_0726.pth" , "N100V10":"N100V10_v20k12_0729.pth" ,
             }
     
-    model_path = "./model/MultiTravelingSalesmanProblem/checkpoint/" + model[arg.model]
     data_path = "./model/MultiTravelingSalesmanProblem/" + arg.data_path 
     ##################### Prepare Model   ######################
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -160,17 +159,16 @@ if __name__ == "__main__":
         clip_coe=10,
         temp=1
     ).to(device) 
-    Agent.load_state_dict(torch.load(model_path))
     total = sum([parameters.nelement() for parameters in Agent.parameters()]) 
     print(f"Parameters of the Model : {total}")
     print("--------------\n")
     maximum_batch_size = 32
     
     #################### Create log #######################
-    Method = ["ORTools-GD" , "Our-Greedy","Our-POMO"]
+    Method = ["ORTools-GD","N50V5-G","N50V5-P","N50V10-G","N50V10-P","N100V5-G","N100V5-P","N100V10-G","N100V10-P"]
     Logger = { method:{  str(nodes):None for nodes in range(lowerbound_nodes , highbound_nodes+interval , interval ) }   for method in Method  }
+    Logger.update({"Vehicle_num":vehicle_num})
     print(f"Initilize logger : {Logger}") 
-    
     
     ################### Start testing ######################
    
@@ -187,23 +185,32 @@ if __name__ == "__main__":
             maximum_batch_size=maximum_batch_size  , PMPO=True
         )
         print("Start")
-        
-        Logger["Our-Greedy"][str(node_num)] = Greedy(Agent=Agent , validation_set=copy.deepcopy(dataset) , batch_size=batch_size,vehicle_nums=vehicle_num)
-        
-        Logger["Our-POMO"][str(node_num)]   = PMPO(Agent=Agent  ,validation_set=copy.deepcopy(PMPO_dataset) , batch_size=batch_size , vehicle_nums=vehicle_num , 
-                                                 maximum_batch_size=maximum_batch_size)
 
         Logger["ORTools-GD"][str(node_num)]  = ORTools_MTSP(validation_set=dataset , batch_size=batch_size , vehicle_num=vehicle_num,time_limit=10000 ,algo='GD')
+        for model_name in ["N50V5","N50V10","N100V5","N100V10"] : 
+            
+            model_path = "./model/MultiTravelingSalesmanProblem/checkpoint/" + model[model_name]
+            Agent.load_state_dict(torch.load(model_path))
+            
+            Logger[model_name+"-G"][str(node_num)] = Greedy(Agent=Agent , validation_set=copy.deepcopy(dataset) , batch_size=batch_size,vehicle_nums=vehicle_num)
+            
+            Logger[model_name+"-P"][str(node_num)]   = PMPO(Agent=Agent  ,validation_set=copy.deepcopy(PMPO_dataset) , batch_size=batch_size , vehicle_nums=vehicle_num , 
+                                                    maximum_batch_size=maximum_batch_size)
 
-    Logger.update({"vehicle_num":vehicle_num , "Model":arg.model})
+            
+
+
+
+
+   
     print(Logger) 
     with open("./model/MultiTravelingSalesmanProblem/ComputationLogger.json" , "w") as jsonfile : 
         json.dump(Logger , jsonfile)
         print("Logger Complete !")
     
-    if os.path.isfile(data_path+DataName) : 
-        print(f"Remove data : {data_path + DataName}")   
-        os.remove(data_path+DataName)
-    else : 
-        print("not find the data to remove")
+    # if os.path.isfile(data_path+DataName) : 
+    #     print(f"Remove data : {data_path + DataName}")   
+    #     os.remove(data_path+DataName)
+    # else : 
+    #     print("not find the data to remove")
         
