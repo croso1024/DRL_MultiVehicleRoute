@@ -81,11 +81,15 @@ def efficiency_diagram(*file_path , filter_word):
             if not "OR"  in method : 
                 inference_method = "Greedy" if "-G" in method else "POMO"
                 legend_name =   f"Our Model with {inference_method} (V{vehicle_num})"
+                marker = "^" if "V5" in legend_name else "."
             else : 
                 legend_name = f"OR-Tools Greedy descent (V{vehicle_num})"
-
+                marker = 's'
             
-            plt.plot([int(i) for i in nodes_data] , time_list , label=legend_name , marker='o' , linestyle=line_style)
+            # nodes_data = nodes_data[::2]
+            # time_list = time_list[::2]
+            
+            plt.plot([int(i) for i in nodes_data] , time_list , label=legend_name , marker=marker , linestyle=line_style)
             
         plt.xlabel("Node-num") 
         plt.ylabel("Computation time(seconds)")
@@ -100,6 +104,9 @@ def efficiency_diagram(*file_path , filter_word):
 
     plt.show()
     
-    
-performance_diagram("./model/MultiTravelingSalesmanProblem/Computation_V5.json" , filter_word=[]) 
-# efficiency_diagram("./model/MultiTravelingSalesmanProblem/Computation_V5.json",filter_word=["N100","V10"])
+# performance_diagram("./model/MultiTravelingSalesmanProblem/Computation_V5.json" , filter_word=[]) 
+# performance_diagram("./model/MultiTravelingSalesmanProblem/Computation_V10.json" , filter_word=[]) 
+efficiency_diagram(
+    "./model/MultiTravelingSalesmanProblem/Computation_V5.json",
+    "./model/MultiTravelingSalesmanProblem/Computation_V10.json",
+    filter_word=["N100","V10"])
