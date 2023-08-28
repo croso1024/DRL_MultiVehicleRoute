@@ -114,7 +114,7 @@ class MTSP_Environment :
                 )
             )
         else: raise RuntimeError("Pos mode only Depot available")
-            
+        # 紀錄每一個batch目前的Decision vehicle
         self.decision_vehicle = torch.zeros(size=(self.batch_size,1),dtype=torch.long,device=self.device)
         self.Fleet_state[:,:,:2] = self.init_pos.clone()   
         # add vehicle_number for every vehicle in the fleet 

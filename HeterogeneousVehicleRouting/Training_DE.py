@@ -64,9 +64,9 @@ Training_Generator = lambda node_num : CVRP_DataGenerator(
     node_num= node_num 
 )
 #NV_table = [(50,8),(57,9),(62,10)]
-NV_table = [(55,8)]
+NV_table = [(node_nums,vehicle_nums)]
 validation_setting = {
-    "D":128 , "B":8 , "N":55 , "V" : 8 , "HE":True
+    "D":128 , "B":8 , "N":node_nums , "V" : vehicle_nums , "HE":True
 }
 
 

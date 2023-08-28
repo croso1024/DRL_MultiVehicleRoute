@@ -1,7 +1,8 @@
 from utils.MTSPGenerator import MTSP_DataGenerator 
 # from utils.TSPGenerator import TSP_DataGenerator
 from torch_geometric.data import Batch 
-from Env.Environment import MTSP_Environment
+# from Env.Environment import MTSP_Environment
+from Env.Environment_DSE import MTSP_Environment
 import torch 
 import sys , os 
 
@@ -15,12 +16,16 @@ class hiddenprint :
         sys.stdout = self._original_stdout
 
 # StateEQ  = "PMPO"
-StateEQ = None 
+StateEQ = "DE"
 batch_size = 4
-node_nums = 5
-vehicle_num = 4
-ig = MTSP_DataGenerator(workers=1,batch_size=batch_size,node_num=node_nums) 
-batch = ig.getInstance_Batch()
+node_nums = 4
+vehicle_num = 2
+DE_type =4 
+generator_batch_size = batch_size // DE_type if StateEQ in ["DE","mix"]  else batch_size
+
+ig = MTSP_DataGenerator(workers=1, batch_size=generator_batch_size ,node_num=node_nums) 
+# batch = ig.getInstance_Batch()
+batch = ig.getInstance_Batch() if StateEQ in ["DE", None] else ig.getInstance_BatchPMPO_SingleProcess(dataset_size=1)[0]
 
 
 env = MTSP_Environment( 
@@ -29,7 +34,8 @@ env = MTSP_Environment(
     batch_data=batch , 
     vehicle_num=vehicle_num,
     StateEQ=StateEQ , 
-    criterion="max" , 
+    # criterion="max" , 
+    DE_transform_type=DE_type , 
     vehicle_pos_mode="Depot",
     device='cpu' 
 )

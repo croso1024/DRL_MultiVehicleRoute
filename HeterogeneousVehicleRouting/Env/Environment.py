@@ -81,7 +81,7 @@ class HCVRP_Environment :
             self.batch = self.DecisionEquivalentTransform(batch_data)
             self.usePMPO = False
         elif self.stateEQ_mode == "mix": 
-            assert self.batch_size % (DE_transform_type*8) == 0 ,"Batch size ERROR when mix mode"
+            assert self.batch_size % (DE_transform_type*8) == 0 ,"Batch size ERROR with mix mode"
             self.batch = self.DecisionEquivalentTransform(batch_data)
             self.usePMPO = True 
         elif self.stateEQ_mode == "PMPO": 
@@ -209,11 +209,8 @@ class HCVRP_Environment :
 
 
         if self.stateEQ_mode in ["DE","mix"] :
-            self.Fleet_state = self.Fleet_state[self.sup_batchwise_indexing,self.premutation_tensor,:]
+            self.Fleet_state = self.Fleet_state[self.sup_batchwise_indexing,self.permutation_tensor,:]
 
-            if not self.training : 
-                # record the vehicle capacity to check the currectness of permutation_tensor & vehicle_capacity
-                self.Fleet_state_ref = self.Fleet_state[:,:,2] 
             
             
         # print(f"Debug after update the Fleet-state : \n{self.Fleet_state}")
@@ -387,7 +384,7 @@ class HCVRP_Environment :
         # self.permutation_tensor shape :  batch_size , vehicle_num --> 每一個batch的順序
         batchwise_decision_sequence = list() 
         # 除了DE,mix以外 , 因為我在模型inference的時候車輛set都是依照順序的,所以相當於permutation tensor是一個torch.arange 
-        permutation_tensor = self.premutation_tensor if self.stateEQ_mode in ["DE","mix"] else torch.arange(self.vehicle_num).unsqueeze(0).expand(size=(self.batch_size , self.vehicle_num)) 
+        permutation_tensor = self.permutation_tensor if self.stateEQ_mode in ["DE","mix"] else torch.arange(self.vehicle_num).unsqueeze(0).expand(size=(self.batch_size , self.vehicle_num)) 
         for batch_idx , sequence in enumerate(permutation_tensor.tolist()): 
             decision_sequence = list() 
             for vehicle_ith in sequence:
@@ -428,7 +425,7 @@ class HCVRP_Environment :
         # 在DE , mix模式需要用permutation-tensor做校正 , 取出vehicle-routes對應的部份依序排入Model_Predict_Route
         if self.stateEQ_mode in ["DE" , "mix"] : 
             
-            permutation_reference = self.premutation_tensor[index].squeeze() 
+            permutation_reference = self.permutation_tensor[index].squeeze() 
             for i , path in enumerate(vehicle_routes): 
                 # print(f"The {i}-th route is vehicle {permutation_reference[i]}")
                 # 對照DE,第i條路徑是由 self.permutation_tensor[i] 車輛所走
@@ -518,7 +515,7 @@ class HCVRP_Environment :
         
         origin_batch = Batch.from_data_list( [data for data in origin_batch for i in range(self.DE_transform_type)]                            )
         
-        self.premutation_tensor = torch.stack(
+        self.permutation_tensor = torch.stack(
             [ torch.randperm( self.vehicle_num ) for i in range(self.batch_size)  ] , dim=0
         ) 
         return origin_batch

@@ -14,17 +14,16 @@ class hiddenprint :
         sys.stdout.close() 
         sys.stdout = self._original_stdout
 
-StateEQ  = "PMPO"
+StateEQ  = "DE"
 batch_size = 8
 DE_type = 4
-node_nums = 4
+node_nums = 5
 
 generator_batch_size = batch_size // DE_type if StateEQ in ["DE","mix"]  else batch_size
 
 ig = CVRP_DataGenerator(workers=1,batch_size=generator_batch_size,node_num=node_nums) 
 batch = ig.getInstance_Batch() if StateEQ=="DE" else ig.getInstance_BatchPMPO_SingleProcess(dataset_size=1)[0]
 # batch =  ig.getInstance_BatchPMPO_SingleProcess(dataset_size=1)[0] if StateEQ in  else ig.getInstance_Batch()
-
 
 env = HCVRP_Environment(
     batch_size=batch_size,
