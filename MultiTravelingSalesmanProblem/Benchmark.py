@@ -245,7 +245,7 @@ if __name__ == "__main__":
         hidden_dim=192 , heads = 6 , num_layers=3 , 
         skip_connection=True , clip_coe=10,temp = 1.2
     ).to(device) 
-    model_path = "./model/MultiTravelingSalesmanProblem/checkpoint/N50_v20k12_0605.pth"
+    model_path = "./model/MultiTravelingSalesmanProblem/checkpoint/N50V5_v20k12_DSE_0829.pth"
     Agent.load_state_dict(torch.load(model_path))
     
     

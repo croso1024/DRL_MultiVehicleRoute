@@ -38,10 +38,10 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 config = {
     "vehicle_num" : 5,
-    "init_Request_num" : 40 , 
+    "init_Request_num" : 30 , 
     "init_capacity": 0.8 , 
     "maximum_Request_num": 70 , 
-    "step_duration" : 0.25 , 
+    "step_duration" : 0.3 , 
     "release_num":(6,6) , 
     "total_update_times": 4 , 
     "device": device , 
@@ -72,10 +72,10 @@ Agent_random = PolicyNetwork(
         hidden_dim=192, heads = 6 , num_layers=3 , 
         skip_connection=True , clip_coe=10,temp=1.5
     ).to(device)
-# Agent_depot.load_state_dict(torch.load("./model/DynamicStochasticVehicleRouting/checkpoint/N50_v20_n50_SC_DEPOT_0608.pth"))
+# Agent_depot.load_state_dict(torch.load("./model/DynamicStochasticVehicleRouting/checkpoint/N50_v20_n50_SC_DEPOT_0703.pth"))
 Agent_depot.load_state_dict(torch.load("./model/DynamicStochasticVehicleRouting/checkpoint/N50_v20_n50_SC_DEPOT.pth"))
 Agent_depot.eval() 
-# Agent_random.load_state_dict(torch.load("./model/DynamicStochasticVehicleRouting/checkpoint/N50_v20_n50_SC_RANDOM_0609.pth"))
+# Agent_random.load_state_dict(torch.load("./model/DynamicStochasticVehicleRouting/checkpoint/N50_v20_n50_SC_RANDOM_0703.pth"))
 Agent_random.load_state_dict(torch.load("./model/DynamicStochasticVehicleRouting/checkpoint/N50_v20_n50_SC_RANDOM.pth"))
 Agent_random.eval()
 
@@ -100,12 +100,12 @@ Testing("DE" , test_times=testtimes)
         
 config = {
     "vehicle_num" : 5,
-    "init_Request_num" : 40 , 
+    "init_Request_num" : 30 , 
     "init_capacity": 0.8 , 
     "maximum_Request_num": 70 , 
     "step_duration" : 0.3 , 
-    "release_num":(5,5) , 
-    "total_update_times": 3 , 
+    "release_num":(4,4) , 
+    "total_update_times": 6 , 
     "device": device , 
     "DE_transform_type" : 8 , 
     "ORTools_algo":"GREEDY_DESCENT",

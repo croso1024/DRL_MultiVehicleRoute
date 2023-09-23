@@ -351,7 +351,6 @@ class MTSP_Environment :
         # befix :  origin_batch = Batch.from_data_list(  origin_batch * self.DE_transform_type   )        
         
         origin_batch = Batch.from_data_list( [data for data in origin_batch for i in range(self.DE_transform_type)]                            )
-        
         self.permutation_tensor = torch.stack(
             [ torch.randperm( self.vehicle_num ) for i in range(self.batch_size)  ] , dim=0
         ) 

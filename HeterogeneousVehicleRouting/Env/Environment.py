@@ -144,6 +144,7 @@ class HCVRP_Environment :
             step5. 輸出Graph-state , fleet-state , decision-vehicle-state (此版本不做reset時的mask)
         """
         self.depot_index = 0 
+        # let the demand of depot = 0 
         self.static_state[:,self.depot_index,2] = 0 
         self.dynamic_state[:,1:,1] = 1  #除了depot index都把have request開為1
         # self.dynamic_state[:,self.depot_index,1] = 0 

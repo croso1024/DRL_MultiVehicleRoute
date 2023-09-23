@@ -10,7 +10,7 @@
         5. 加入DE-sample-based  method 
     2023-04-14 加入新建的Dataset loader , 改用固定的Dataset做測試, 主要只有修改產生dataset的部份 ,改以預先製作的dataset,capacity,velocity setting
 """
-from Env.Environment import MTSP_Environment 
+from Env.Environment_DSE import MTSP_Environment 
 from torch.distributions import Categorical 
 from utils.MTSPGenerator import MTSP_DataGenerator 
 from utils.VRP_solver import ORtools_VRP
@@ -27,6 +27,7 @@ def env_maker_validate(batch_size , batch_data  , StateEQ    ):
         vehicle_num=vehicle_num , 
         batch_data = batch_data , 
         vehicle_pos_mode="Depot" , 
+        DE_transform_type=DE_transform_type , 
         StateEQ=StateEQ , 
         graph_transform={"transform":"knn" , "value":12} , 
         device = device ,
@@ -125,7 +126,41 @@ def PMPO_sample(Agent ,validation_set ,batch_size,vehicle_nums  , maximum_batch_
     print(f"Average minSum : {average_tour_length/len(PMPO_dataset):.3f}")
     print(f"-----------------------------------------")
 
+
+
+
+
+def DE(Agent , validation_set , batch_size , vehicle_num , maximum_batch_size = None): 
+    assert batch_size % 8 ==0 , "Batch size not match PMPO"
+    DE_batch_size = batch_size * DE_transform_type
+    average_tour_length = 0 
+    computation_time = 0 
+    with torch.no_grad() : 
+         
+        for i, batch in enumerate(tqdm(validation_set)): 
+            start = time.time()
+            batch.to(device)
+            # env = env_maker_validate(batch)
+            # env = env_maker_validate(batch_size=DE_batch_size  , batch_data=batch , vehicle_capacity=vehicle_charateristic[0].tolist()
+            #                         , vehicle_velocity=vehicle_charateristic[1].tolist() , StateEQ="DE"  ) 
+            env = env_maker_validate(batch_size=DE_batch_size , batch_data=batch , StateEQ="DE")
+            batch = env.get_initilize_Batch()
+            batch.state , fleet_state , vehicle_state , mask , done = env.reset() 
+            while not done : 
+                action_dist = Agent(batch,fleet_state , vehicle_state ,mask )
+                action = torch.argmax(action_dist,dim=1,keepdim=False)
+                batch.state , fleet_state , vehicle_state , reward , mask ,done = env.step(action.view(DE_batch_size,-1))
+            minSum_tour = reward 
+            computation_time += time.time() - start 
+            # DE_minSum_tour , DE_fulill_rate = env.calculate_DE_inference(minSum_tour)
+            DE_minSum_tour = env.StateEQ_reward_function(minSum_tour , mode="min")
+            average_tour_length += DE_minSum_tour.mean() 
+    print(f"DE Complete in {computation_time:.3f} seconds")
+    print(f"Average minSum : {average_tour_length/len(validation_set):.3f}")
+    print(f"-----------------------------------------")
     
+
+
 def ORTools_MTSP(validation_set , batch_size ,vehicle_num , time_limit=1 ,algo="GD"):
     algo_table = {
         "GD":"GREEDY_DESCENT" ,
@@ -170,6 +205,7 @@ if __name__ == "__main__":
     argParser.add_argument("-n","--node_num", type=int, default=20)
     argParser.add_argument("-v","--vehicle_num", type=int, default=1)
     argParser.add_argument("-t","--ortools_times", type=int, default=1)
+    argParser.add_argument("-trans" , "--transform_type" , type=int , default = 8)
     argParser.add_argument("-m","--model", type=str, default="RL_agent") 
     arg = argParser.parse_args() 
     
@@ -178,6 +214,7 @@ if __name__ == "__main__":
     node_num = arg.node_num 
     vehicle_num = arg.vehicle_num 
     ortools_timelimit = arg.ortools_times 
+    DE_transform_type = arg.transform_type 
     model_path = "./model/MultiTravelingSalesmanProblem/checkpoint/" + arg.model + ".pth" 
     
     ##################### Prepare Model   ######################
@@ -194,7 +231,7 @@ if __name__ == "__main__":
         clip_coe=10,
         temp=1
     ).to(device) 
-    model_path = "./model/MultiTravelingSalesmanProblem/checkpoint/N50V10_v20k12_0802.pth"
+    model_path = "./model/MultiTravelingSalesmanProblem/checkpoint/N100V5_v20k12_DSE_0829.pth"
     Agent.load_state_dict(torch.load(model_path))
     total = sum([parameters.nelement() for parameters in Agent.parameters()]) 
     print(f"Parameters of the Model : {total}")
@@ -217,7 +254,7 @@ if __name__ == "__main__":
 
 
 
-    Greedy(Agent=Agent, validation_set=copy.deepcopy(dataset) , batch_size=batch_size , vehicle_nums=vehicle_num , 
+    Greedy(Agent=Agent, validation_set=copy.deepcopy(dataset) , batch_size=batch_size  , vehicle_nums=vehicle_num , 
            )
 
     PMPO(Agent=Agent, validation_set=copy.deepcopy(PMPO_dataset) , batch_size=batch_size , vehicle_nums=vehicle_num , 
@@ -225,6 +262,9 @@ if __name__ == "__main__":
 
     PMPO_sample(Agent=Agent, validation_set=copy.deepcopy(PMPO_dataset) , batch_size=batch_size , vehicle_nums=vehicle_num , 
             maximum_batch_size=maximum_batch_size , sample_size=10 )
+
+    DE(Agent=Agent , validation_set=copy.deepcopy(dataset),batch_size=batch_size ,vehicle_num = vehicle_num ,
+        maximum_batch_size=maximum_batch_size )
 
     # ORTools_MTSP(validation_set=dataset , batch_size=batch_size , vehicle_num=vehicle_num  ,  time_limit=ortools_timelimit*300 ,algo='GD')
     

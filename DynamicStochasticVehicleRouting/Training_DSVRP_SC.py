@@ -24,7 +24,7 @@ torch.backends.cudnn.benchmark = False
 torch.backends.cudnn.deterministic = True
 torch.utils.backcompat.broadcast_warning.enabled = True 
 ########## Parameters ############## 
-num_epoch , per_dataset_size , batch_size = 200, 100 , 112
+num_epoch , per_dataset_size , batch_size = 200, 100 , 128
 validation_size = 6 # 1 validation_size x batch 
 lr , decay_rate  , grad_cummulate = 1e-4, 1e-6   , 2
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -62,9 +62,9 @@ Training_Generator = lambda node_num : DSVRP_DataGenerator(
 # NV_table = [(50,5),(57,5),(63,10),(68,11)]
 # NV_table = [(40,4),(50,5),(60,6)]
 # NV_table = [(45,5),(50,5),(55,5)]
-NV_table = [(50,5)]
+NV_table = [(40,5)]
 validation_setting = {
-    "D":1280 , "B":64 , "N":50 , "V": 5
+    "D":1280 , "B":64 , "N":40 , "V": 5
 }
 
 
@@ -76,8 +76,8 @@ def env_maker(batch_size , batch_data , node_num , vehicle_num , vehicle_capacit
         batch_data = batch_data , 
         vehicle_num = vehicle_num , 
         vehicle_capacity = vehicle_capacity , 
-        vehicle_pos_mode="Random"  , 
-        # vehicle_pos_mode="Depot" , 
+        #vehicle_pos_mode="Random"  , 
+        vehicle_pos_mode="Depot" , 
         StateEQ=StateEQ,
         DE_transform_type=DE_transform_type , 
         # graph_transform= {"transform":"knn","value":10},
@@ -191,7 +191,7 @@ def training():
         validation_reward  ,score  = validation(dataset=vadlidation_set) 
         
         if score < best : 
-            torch.save(Agent.state_dict() , "./model/DynamicStochasticVehicleRouting/checkpoint/N50_v20_n50_SC_RANDOM_0609.pth")
+            torch.save(Agent.state_dict() , "./model/DynamicStochasticVehicleRouting/checkpoint/N50_v20_n50_SC_DEPOT_0703.pth")
             print(f"\n\n -- Save the model parameters \n\n")
             best = score
         

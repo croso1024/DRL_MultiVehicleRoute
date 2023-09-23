@@ -14,7 +14,7 @@ from math import exp
 from random import shuffle 
 from utils.ValidationDataset import LoadDataset
 #############  SEED  ###############
-seed = 105
+seed = 108
 random.seed(seed)
 torch.manual_seed(seed)
 if torch.cuda.is_available():
@@ -25,14 +25,14 @@ torch.backends.cudnn.benchmark = False
 torch.backends.cudnn.deterministic = True
 torch.utils.backcompat.broadcast_warning.enabled = True 
 ########## Parameters ############## 
-num_epoch , per_dataset_size , batch_size = 20, 20 , 32
+num_epoch , per_dataset_size , batch_size = 200, 200 , 96
 validation_size = 6 # 1 validation_size x batch 
-lr , decay_rate  , grad_cummulate = 1e-4, 1e-6   , 4
+lr , decay_rate  , grad_cummulate = 1e-4, 1e-6   , 2
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 # device = 'cpu'
 writter = SummaryWriter("./model/MultiTravelingSalesmanProblem/training_log")
 ############ Model ################## 
-node_nums , vehicle_nums = 50,5
+node_nums , vehicle_nums = 50,7
 node_features_dim , fleet_features_dim , vehicle_features_dim = 4, 5 , 4
 hidden_dim =192 
 from net.ver20.PolicyNetwork import PolicyNetwork
@@ -47,7 +47,7 @@ Agent = PolicyNetwork(
     skip_connection=True , 
     clip_coe=10 ,
 ).to(device)
-# Agent.load_state_dict(torch.load("./model/MultiTravelingSalesmanProblem/checkpoint/N50_v20k12.pth"))
+# Agent.load_state_dict(torch.load("./model/MultiTravelingSalesmanProblem/checkpoint/N50V5_v20k12_DSE.pth"))
 
 optimizer = AdamW( Agent.parameters() , lr = lr , weight_decay=decay_rate ) 
 scheduler = StepLR(optimizer=optimizer , step_size=per_dataset_size, gamma = 0.99)
@@ -66,7 +66,7 @@ Training_Generator = lambda node_num : MTSP_DataGenerator(
 NV_table = [(node_nums, vehicle_nums)]
 
 validation_setting = {
-    "D":128 , "B":8 , "N":node_nums, "V": vehicle_nums
+    "D":1280 , "B":64 , "N":node_nums, "V": vehicle_nums
 }
 
 
@@ -169,7 +169,7 @@ def training():
         validation_reward   = validation(dataset=vadlidation_set) 
         
         if validation_reward < best : 
-            # torch.save(Agent.state_dict() , "./model/MultiTravelingSalesmanProblem/checkpoint/N100V10_v20k12_0729.pth")
+            torch.save(Agent.state_dict() , "./model/MultiTravelingSalesmanProblem/checkpoint/N50V7_v20k12_DSE_0906.pth")
             print(f"\n\n -- Save the model parameters \n\n")
             best = validation_reward
         
