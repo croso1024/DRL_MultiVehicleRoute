@@ -14,6 +14,10 @@
     擴展為CVRP data generator , 主要是加入node demand的維度
     2023-04-04 
     加入PMPO single process / validation single process /dataset_to_PMPO_singleProcess 的版本 , 嘗試先避開knn卡死問題
+
+    2023-09-26 : 
+    因應Journal版本 , 修改了使用平均分佈車輛屬性 ,demand大小的版本 , 
+    修改了Demand_Node這個class的demand計算方式為截斷常態分佈 
 """
 
 import numpy as np 
@@ -31,7 +35,7 @@ from tqdm import tqdm
 
 
 
-random_demand = lambda : max(0.01 ,(betavariate(alpha =2,beta=5) /4) )
+
 class Instance(Data): 
     def __cat_dim__(self, key: str, value, *args, **kwargs) :
         if key in ['y' , 'node_route_cost'] : return None 
@@ -46,7 +50,11 @@ class Node(object):
         return (self.x , self.y) 
     
 #triangular_demand = lambda : triangular(low=0,high=1, mode=0.1)
+random_demand = lambda : max(0.01 , (normalvariate( mu = 0.08 , sigma=0.02 ))  )
+
 class Demand_Node(object): 
+    
+    #random_demand = lambda : max(0.01 ,(betavariate(alpha =2,beta=5) /4) )
     
     def __init__(self,x,y , demand=None): 
         self.x =x 

@@ -34,13 +34,13 @@ torch.backends.cudnn.benchmark = False
 torch.backends.cudnn.deterministic = True
 torch.utils.backcompat.broadcast_warning.enabled = True 
 ########## Parameters ############## 
-num_epoch , per_dataset_size , batch_size = 5, 3  , 16
-lr , decay_rate  , grad_cummulate = 1e-4, 1e-6   , 1
+num_epoch , per_dataset_size , batch_size = 200, 200  , 96
+lr , decay_rate  , grad_cummulate = 1e-4, 1e-6   , 2
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 # device = 'cpu'
 writter = SummaryWriter("./model/HeterogeneousVehicleRouting/training_log")
 ############ Model ################## 
-node_nums , vehicle_nums = 55 , 8 
+node_nums , vehicle_nums = 50 , 5
 
 node_features_dim , fleet_features_dim , vehicle_features_dim = 5, 7 , 6
 hidden_dim = 192
@@ -51,7 +51,7 @@ Agent = PolicyNetwork(node_feature_dim=node_features_dim , fleet_feature_dim= fl
 
 optimizer = AdamW( Agent.parameters() , lr = lr , weight_decay=decay_rate ) 
 
-scheduler = StepLR(optimizer=optimizer , step_size=per_dataset_size//grad_cummulate, gamma = 0.989)
+scheduler = StepLR(optimizer=optimizer , step_size=per_dataset_size, gamma = 0.99)
 scaler = GradScaler()
 total = sum([param.nelement() for param in Agent.parameters()])
 print("Number of model parameter: %.2fM" % (total/1e6))
@@ -66,7 +66,7 @@ Training_Generator = lambda node_num : CVRP_DataGenerator(
 #NV_table = [(50,8),(57,9),(62,10)]
 NV_table = [(node_nums,vehicle_nums)]
 validation_setting = {
-    "D":128 , "B":8 , "N":node_nums , "V" : vehicle_nums , "HE":True
+    "D":1280 , "B":64 , "N":node_nums , "V" : vehicle_nums , "HE":True
 }
 
 
@@ -83,7 +83,8 @@ def env_maker(batch_size , batch_data , node_num , vehicle_num ,vehicle_charater
         training = training , 
         graph_transform={"transform":"knn" , "value":12},
         vehicle_pos_mode="Depot",
-        device =device 
+        device =device ,
+        journal=True 
     )
 
 
@@ -190,7 +191,7 @@ def training():
         validation_reward , score = validation(dataset=validation_set) 
         score_logger.append(score.cpu())
         if score< best : 
-            #torch.save(Agent.state_dict() , "./model/HeterogeneousVehicleRouting/checkpoint/N55H_v20k12.pth")
+            torch.save(Agent.state_dict() , "./model/HeterogeneousVehicleRouting/checkpoint/N50V5_Journal.pth")
             print(f"\n\n -- Save the model parameters \n\n")
             best = score
         

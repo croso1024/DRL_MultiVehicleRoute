@@ -20,7 +20,9 @@
 2023-04-18 
     調整reset的順序 , 把mask更新移動到vehicle-vector後 , 在mask reset也加入capacity limit , 
     用來處理HVRP instance裡面有時候剛開始第一台車就無法服務某些節點的狀況
-    
+2023-09-26 : 
+    加入針對Journal版本, 採用平均分佈採樣的車輛特徵屬性。 主要修改了RandomCharatersitic函數,加入"journal"模式,
+    並在Env constructor , sample charteristic中加入journal的argument. 
 """
 import torch 
 from torch_geometric.utils import to_dense_batch , mask_to_index 
@@ -44,6 +46,7 @@ class HCVRP_Environment :
                     training = False , 
                     graph_transform : dict = None ,
                     device = 'cpu' , 
+                    journal = False , 
                 ): 
         self.batch_size = batch_size     
         self.num_nodes = node_nums 
@@ -52,6 +55,7 @@ class HCVRP_Environment :
         self.path_length = node_nums + vehicle_num - 1 
         self.stateEQ_mode = StateEQ
         self.DE_transform_type = DE_transform_type
+        self.journal = journal
         # setup capacity vector 
         if type(vehicle_capacity) == list and len(vehicle_capacity) == self.vehicle_num : 
             if training : raise RuntimeError("list charateristic only support inference mode")
@@ -169,8 +173,7 @@ class HCVRP_Environment :
         
         if self.training : 
             
-            random_capacity , random_velocity  = self.RandomCharateristic( sample_size=  self.batch_size // random_num )
-            
+            random_capacity , random_velocity  = self.RandomCharateristic( sample_size=  self.batch_size // random_num , journal=self.journal )
             
             
             # PMPO first , then DE 
@@ -634,18 +637,29 @@ class HCVRP_Environment :
         return best_distance , best_index 
 
 
-    def RandomCharateristic(self , sample_size ): 
-        probs = torch.tensor( [ 0.35,0.25 , 0.25, 0.15   ])
-        capacity_ranges = [(0.25, 0.45), (0.55, 0.65), (0.75, 0.85), (0.95, 1)]
-        num_range = len(capacity_ranges)
-        categorical_dist = torch.distributions.Categorical(probs = probs) 
-        range_indices = categorical_dist.sample( (sample_size , self.vehicle_num)  )
-        capacity = torch.zeros(size=(sample_size, self.vehicle_num) )
-        for i in range(num_range) : 
-            mask = range_indices == i 
-            low , high = capacity_ranges[i]
-            range_capacities = torch.rand( size=(sample_size  , self.vehicle_num)).mul(high-low).add(low)
-            capacity = torch.where(mask , range_capacities , capacity)
-        velocity =  ( (-2/3)  * capacity ) + (32/30)
-        return capacity.unsqueeze(1).to(self.device) , velocity.unsqueeze(1).to(self.device)    
+    def RandomCharateristic(self , sample_size , journal = False  ): 
+        
+        if journal: 
+            
+            capacity = torch.rand( size=( sample_size , self.vehicle_num) ).mul(1-0.4).add(0.4) 
+            velocity = 1.4 - capacity 
+            return capacity.unsqueeze(1).to(self.device) , velocity.unsqueeze(1).to(self.device)
+            
+        else : 
+            
+            probs = torch.tensor( [ 0.35,0.25 , 0.25, 0.15   ])
+            capacity_ranges = [(0.25, 0.45), (0.55, 0.65), (0.75, 0.85), (0.95, 1)]
+            num_range = len(capacity_ranges)
+            categorical_dist = torch.distributions.Categorical(probs = probs) 
+            range_indices = categorical_dist.sample( (sample_size , self.vehicle_num)  )
+            capacity = torch.zeros(size=(sample_size, self.vehicle_num) )
+            for i in range(num_range) : 
+                mask = range_indices == i 
+                low , high = capacity_ranges[i]
+                range_capacities = torch.rand( size=(sample_size  , self.vehicle_num)).mul(high-low).add(low)
+                capacity = torch.where(mask , range_capacities , capacity)
+            velocity =  ( (-2/3)  * capacity ) + (32/30)
+            return capacity.unsqueeze(1).to(self.device) , velocity.unsqueeze(1).to(self.device)    
+        
+        
         

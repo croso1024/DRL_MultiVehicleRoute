@@ -16,6 +16,10 @@
 """
 
 
+""" 
+    2023-09-26 加入為了Jouranl版本的 , 平均化Vehicle charateristic , 對於車輛速度與容量直接採用倒數關係
+"""
+
 import torch ,sys
 sys.path.append("./model/HeterogeneousVehicleRouting/utils")
 from CVRPGenerator import CVRP_DataGenerator 
@@ -25,19 +29,28 @@ import numpy as np
 from tqdm import tqdm 
 import argparse 
 
-def CreateDataset(dataset_size,batch_size, node_num, vehicle_num , heterogeneous=False) : 
+
+
+def CreateDataset(dataset_size,batch_size, node_num, vehicle_num , heterogeneous=False, journal=False) : 
     assert dataset_size % batch_size == 0 , "Dataset-size cannot be divided by Batch-size"
     # Step1. Create Data-list
     Generator = CVRP_DataGenerator(workers=1 , batch_size=batch_size , node_num=node_num )
     Dataset_instance = [ Generator.getInstance() for i in tqdm(range(dataset_size)) ]
     Dataset = DataLoader(Dataset_instance , batch_size=batch_size ,pin_memory=False)  
     # Step2. Setup the capaicty , velocity configuration
-    charater_set_number = dataset_size // batch_size
+    charater_set_number = dataset_size // batch_size  
+    
+    if journal : 
+        charateristic_function = RandomCharateristic_journal
+        c2v = lambda c : 1.4 - c 
+        
+    else : 
+        charateristic_function = RandomCharateristic_single
+        c2v = lambda c : ((-2/3)*c) + (32/30)
+            
     if heterogeneous : 
-        #capacity = [[ uniform(0.2,1.0) for v in range(vehicle_num) ]  for i in range(charater_set_number)    ]
-        #velocity = [ [ 8/(15*c +5)  for c in sub_capacity_list] for sub_capacity_list in capacity ]
-        capacity =  [   RandomCharateristic_single(vehicle_num=vehicle_num)[0]   for i in range(charater_set_number)] 
-        velocity = [   [ ((-2/3)*c) + (32/30) for c in sub_capacity_list] for sub_capacity_list in capacity ]
+        capacity =  [   charateristic_function(vehicle_num=vehicle_num)[0]   for i in range(charater_set_number)] 
+        velocity = [   [  c2v(c) for c in sub_capacity_list] for sub_capacity_list in capacity ]
     else :         
         capacity = [[1 for v in range(vehicle_num)] for i in range(charater_set_number)]
         velocity = [[1 for v in range(vehicle_num)] for i in range(charater_set_number)]
@@ -101,9 +114,9 @@ def LoadDataset(dataset_size,batch_size,node_num,vehicle_num,heterogeneous =Fals
 
 
 def RandomCharateristic_single(vehicle_num): 
+    probs = torch.tensor( [ 0.35 , 0.25, 0.25 , 0.15  ])
     capacity_ranges = [(0.25, 0.45), (0.55, 0.65), (0.75, 0.85), (0.95, 1)]
     num_range = len(capacity_ranges)
-    probs = torch.tensor( [ 0.35 , 0.25, 0.25 , 0.15  ])
     categorical_dist = torch.distributions.Categorical(probs = probs) 
     range_indices = categorical_dist.sample( (1,vehicle_num) )
     capacity = torch.zeros(size= (1,vehicle_num) ) 
@@ -116,6 +129,13 @@ def RandomCharateristic_single(vehicle_num):
     return capacity.squeeze().tolist() , velocity.squeeze().tolist()    
 
 
+def RandomCharateristic_journal(vehicle_num) : 
+    
+    capacity = torch.rand( (1,vehicle_num) ).mul(1-0.4).add(0.4)
+    
+    return capacity.squeeze().tolist() , None
+
+
 if __name__ == "__main__": 
     
     argParser = argparse.ArgumentParser()
@@ -124,12 +144,15 @@ if __name__ == "__main__":
     argParser.add_argument("-n","--node_num" , type=int , default=50)
     argParser.add_argument("-v","--vehicle_num" , type=int , default=5)
     argParser.add_argument("-he","--heterogeneous" , action="store_true",default=False)
+    argParser.add_argument("-j","--journal" , action="store_true",default=False)
+    
     arg = argParser.parse_args() 
     dataset_size = arg.dataset_size 
     batch_size = arg.batch_size 
     node_num = arg.node_num 
     vehicle_num = arg.vehicle_num 
     heterogeneous = arg.heterogeneous 
+    journal = arg.journal 
 
     CreateDataset(dataset_size=dataset_size, batch_size=batch_size,
-                  node_num=node_num,  vehicle_num=vehicle_num , heterogeneous=heterogeneous )
+                  node_num=node_num,  vehicle_num=vehicle_num , heterogeneous=heterogeneous ,journal=journal)
