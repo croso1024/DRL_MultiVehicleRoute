@@ -14,6 +14,8 @@
     擴展為CVRP data generator , 主要是加入node demand的維度
     2023-04-04 
     加入PMPO single process / validation single process /dataset_to_PMPO_singleProcess 的版本 , 嘗試先避開knn卡死問題
+    2023-09-27 
+    在DSVRP_DataGenerator類別中加入journal的引數 , 使產生的Instance去除隨機交通時間 , 回到正常的距離Edge. 
 """
 
 import numpy as np 
@@ -46,11 +48,11 @@ class Node(object):
 
 class Demand_Node(object): 
     
-    def __init__(self,x,y , demand=None): 
+    def __init__(self,x,y , demand=None , journal=False): 
         self.x =x 
         self.y=y 
         #self.demand =  max(0.01 ,(betavariate(alpha =2,beta=5) /4) ) if demand == None else demand 
-        self.demand = max(0.01,normalvariate(mu = 0.07 ,sigma=0.02)) if demand == None else demand 
+        self.demand = max(0.01,normalvariate(mu = 0.08 ,sigma=0.02)) if demand == None else demand 
     def node_attribute(self)->tuple : 
         return (self.x,self.y,self.demand)
         
@@ -59,12 +61,13 @@ class Demand_Node(object):
 
 class DSVRP_DataGenerator: 
     
-    def __init__(self,workers=1 ,batch_size=32 ,node_num=20 , mode='training') :
+    def __init__(self,workers=1 ,batch_size=32 ,node_num=20 , mode='training' , journal=False) :
         #print(f"Initialize the TSP Data generator \n-- {workers} workers\n--batch_size:{batch_size} \n--node_num:{node_num}") 
               
         self.workers = workers 
         self.batch_size = batch_size 
         self.node_num = node_num 
+        self.journal = journal
     ########## Basic function  ##################
     def getInstance(self,ret=None):
         # step1 . Generate the node data on the fly 
@@ -74,7 +77,7 @@ class DSVRP_DataGenerator:
         #     nodes =[ Demand_Node(uniform(0,1),uniform(0,1))  for i in range(self.node_num) ] 
         # else : 
         #     nodes = self.RandomClusteringNode()
-        nodes = [ Demand_Node(uniform(0,1),uniform(0,1))  for i in range(self.node_num) ] 
+        nodes = [ Demand_Node(uniform(0,1),uniform(0,1) , journal=self.journal)  for i in range(self.node_num) ] 
 
         # step2 . Get the node features 
         node_features = self.node_feature(nodes) 
@@ -98,42 +101,66 @@ class DSVRP_DataGenerator:
         return node_feature 
     
     def node_DistanceMatrix(self,nodes): 
-        # As the input of the ortools , only include the mean distance 
-        Distance_matrix = np.zeros( (self.node_num,self.node_num) , dtype=np.float32 )
-        # Sampled from mean distance & std , use to calculate the cost
-        Stochastic_Distance_matrix = np.zeros((self.node_num  , self.node_num) , dtype=np.float32) 
-        # Randomness matrix 
-        #randomness_factor_matrix = np.random.uniform(low=-0.05, high=0.25, size=(self.node_num, self.node_num)) 
-        randomness_factor_matrix = np.random.uniform(low=0.05, high=0.25, size=(self.node_num, self.node_num)) 
-        randomness_factor_matrix = (randomness_factor_matrix + randomness_factor_matrix.T) / 2
         
-        edge_index ,edge_attr = list() , list()
-        
-        for u , src_node in enumerate(nodes) : 
+        if not self.journal : 
+            # As the input of the ortools , only include the mean distance 
+            Distance_matrix = np.zeros( (self.node_num,self.node_num) , dtype=np.float32 )
+            # Sampled from mean distance & std , use to calculate the cost
+            Stochastic_Distance_matrix = np.zeros((self.node_num  , self.node_num) , dtype=np.float32) 
+            # Randomness matrix 
+            #randomness_factor_matrix = np.random.uniform(low=-0.05, high=0.25, size=(self.node_num, self.node_num)) 
+            randomness_factor_matrix = np.random.uniform(low=0.05, high=0.25, size=(self.node_num, self.node_num)) 
+            randomness_factor_matrix = (randomness_factor_matrix + randomness_factor_matrix.T) / 2
+            
+            edge_index ,edge_attr = list() , list()
+            
+            for u , src_node in enumerate(nodes) : 
 
-            for v , dst_node in enumerate(nodes) : 
-                # determinstic distance between 2 node 
-                distance = DSVRP_DataGenerator.distance_calculate(src_node,dst_node)
-                # after sampled with some randomness 
-                # maximum standard deviation is 0.2 * distance 
-                randomness_factor = randomness_factor_matrix[u][v]
-                stochastic_distance = max(normalvariate(mu=distance , sigma= randomness_factor * distance) , 0.75*distance)
-                #stochastic_distance  = distance*(1+randomness_factor)
-                Distance_matrix[u][v] = distance
-                Stochastic_Distance_matrix[u][v] = stochastic_distance
-                edge_index.append((u,v))
-                # edge_attr.append(distance)
-                # only provide the randomness factor to the model 
-                edge_attr.append(randomness_factor)
+                for v , dst_node in enumerate(nodes) : 
+                    # determinstic distance between 2 node 
+                    distance = DSVRP_DataGenerator.distance_calculate(src_node,dst_node)
+                    # after sampled with some randomness 
+                    # maximum standard deviation is 0.2 * distance 
+                    randomness_factor = randomness_factor_matrix[u][v]
+                    stochastic_distance = max(normalvariate(mu=distance , sigma= randomness_factor * distance) , 0.75*distance)
+                    #stochastic_distance  = distance*(1+randomness_factor)
+                    Distance_matrix[u][v] = distance
+                    Stochastic_Distance_matrix[u][v] = stochastic_distance
+                    edge_index.append((u,v))
+                    # edge_attr.append(distance)
+                    # only provide the randomness factor to the model 
+                    edge_attr.append(randomness_factor)
+        else : 
+            
+            # 2023-09-27 : 直接把Stochastic Distance matrix的部份也改成確定性距離 , 
+            # 就不去修改到Environment裡面使用node_route_cost_std的部份。
+            Distance_matrix = np.zeros( (self.node_num,self.node_num) , dtype=np.float32 )
+            Stochastic_Distance_matrix = np.zeros((self.node_num  , self.node_num) , dtype=np.float32) 
+            
+            edge_index ,edge_attr = list() , list()
+            
+            for u , src_node in enumerate(nodes) : 
 
+                for v , dst_node in enumerate(nodes) : 
+                    distance = DSVRP_DataGenerator.distance_calculate(src_node,dst_node)
+                    Distance_matrix[u][v] = distance
+                    Stochastic_Distance_matrix[u][v] = distance
+                    edge_index.append((u,v))
+                    edge_attr.append(distance)
+            
 
         #print(f"Debug : Distance matrix : {Distance_matrix}")                
-  
+
         #print(f"Debug : Stochastic Distance matrix : {Stochastic_Distance_matrix}")        
         # print(f"Debug edge index : {edge_index}")
         # print(f"Debug edge attr : {edge_attr}")
         return Distance_matrix ,Stochastic_Distance_matrix , edge_index , edge_attr
-    
+
+        
+            
+            
+        
+        
             
     @staticmethod 
     def distance_calculate(node1, node2): 

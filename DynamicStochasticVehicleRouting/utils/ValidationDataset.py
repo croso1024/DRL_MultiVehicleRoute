@@ -20,20 +20,23 @@ import torch ,sys
 sys.path.append("./model/DynamicStochasticVehicleRouting/utils")
 from DSVRPGenerator import DSVRP_DataGenerator
 from torch_geometric.loader import DataLoader 
-from random import uniform , gauss
+from random import uniform , gauss , normalvariate
 import numpy as np 
 from tqdm import tqdm 
 import argparse 
 
-def CreateDataset(dataset_size,batch_size, node_num, vehicle_num ) : 
+def CreateDataset(dataset_size,batch_size, node_num, vehicle_num , journal=False ) : 
     assert dataset_size % batch_size == 0 , "Dataset-size cannot be divided by Batch-size"
     # Step1. Create Data-list
-    Generator = DSVRP_DataGenerator(workers=1 , batch_size=batch_size , node_num=node_num)
+    Generator = DSVRP_DataGenerator(workers=1 , batch_size=batch_size , node_num=node_num , journal=journal)
     Dataset_instance = [ Generator.getInstance() for i in tqdm(range(dataset_size)) ]
     Dataset = DataLoader(Dataset_instance , batch_size=batch_size ,pin_memory=False)  
     # Step2. Setup the capacity 
     charater_set_number = dataset_size // batch_size
-    capacity = [[ max(0,min(gauss(mu=0.75,sigma=0.15),1)) for v in range(vehicle_num) ]  for i in range(charater_set_number)  ]
+    if not journal:
+        capacity = [[ max(0,min(gauss(mu=0.75,sigma=0.15),1)) for v in range(vehicle_num) ]  for i in range(charater_set_number)  ]
+    else : 
+        capacity = [[ normalvariate(mu=0.7 ,sigma=0.1) for v in range(vehicle_num) ]  for i in range(charater_set_number)  ]
     CV_setting = torch.tensor(capacity , dtype=torch.float32)
     print(F"Debug CV_setting : {CV_setting}")
     # expect the shape : {dataset//batch_size , vehicle_num}
@@ -41,8 +44,8 @@ def CreateDataset(dataset_size,batch_size, node_num, vehicle_num ) :
     print(f"Mean capacity : {CV_setting.mean()}")
     
     Dataset_name = f"D{dataset_size}-B{batch_size}-N{node_num}-V{vehicle_num}" 
-    torch.save(Dataset , "./model/DynamicStochasticVehicleRouting/Dataset/"+"Data-"+Dataset_name+".pt") 
-    torch.save(CV_setting ,"./model/DynamicStochasticVehicleRouting/Dataset/"+"CV-"+Dataset_name+".pt" )
+    # torch.save(Dataset , "./model/DynamicStochasticVehicleRouting/Dataset/"+"Data-"+Dataset_name+".pt") 
+    # torch.save(CV_setting ,"./model/DynamicStochasticVehicleRouting/Dataset/"+"CV-"+Dataset_name+".pt" )
 
 
 def LoadDataset(dataset_size,batch_size,node_num,vehicle_num, maximum_batch_size = None, PMPO=False):
@@ -84,11 +87,13 @@ if __name__ == "__main__":
     argParser.add_argument("-b","--batch_size" , type=int , default=32)
     argParser.add_argument("-n","--node_num" , type=int , default=50)
     argParser.add_argument("-v","--vehicle_num" , type=int , default=5)
+    argParser.add_argument("-j","--journal"  ,action="store_true", default=False )
     arg = argParser.parse_args() 
     dataset_size = arg.dataset_size 
     batch_size = arg.batch_size 
     node_num = arg.node_num 
     vehicle_num = arg.vehicle_num 
+    journal = arg.journal
 
     CreateDataset(dataset_size=dataset_size, batch_size=batch_size,
-                  node_num=node_num,  vehicle_num=vehicle_num  )
+                  node_num=node_num,  vehicle_num=vehicle_num ,journal=journal )

@@ -8,7 +8,7 @@ from torch.distributions import Categorical
 from torch.utils.tensorboard import SummaryWriter
 from torch.optim.lr_scheduler import StepLR 
 from torch.nn.functional import normalize 
-from Env.Environment_MaskInit import DSVRP_Environment
+
 from math import exp
 from random import shuffle , random as r 
 from utils.ValidationDataset import LoadDataset
@@ -31,7 +31,7 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 # device = 'cpu'
 writter = SummaryWriter("./model/DynamicStochasticVehicleRouting/training_log")
 ############ Model ################## 
-node_nums , vehicle_nums = 55 , 6
+node_nums , vehicle_nums = 50 , 5
 node_features_dim , fleet_features_dim , vehicle_features_dim = 5, 6 , 5
 hidden_dim = 192  
 from net.ver20.PolicyNetwork import PolicyNetwork
@@ -49,25 +49,27 @@ Agent = PolicyNetwork(
 #Agent.load_state_dict(torch.load("./model/DynamicStochasticVehicleRouting/checkpoint/N50_v19_n55_2.pth"))
 
 optimizer = AdamW( Agent.parameters() , lr = lr , weight_decay=decay_rate ) 
-scheduler = StepLR(optimizer=optimizer , step_size=per_dataset_size, gamma = 0.985)
+scheduler = StepLR(optimizer=optimizer , step_size=per_dataset_size, gamma = 0.99)
 scaler = GradScaler()
 total = sum([param.nelement() for param in Agent.parameters()])
 print("Number of model parameter: %.2fM" % (total/1e6))
 
 ############################################
 DE_transform_type = 8
+
 Training_Generator = lambda node_num : DSVRP_DataGenerator(
-    workers = 4 , batch_size = batch_size//DE_transform_type  , node_num=node_num 
+    workers = 4 , batch_size = batch_size//DE_transform_type  , node_num=node_num  , journal=True
 )
 # NV_table = [(50,5),(57,5),(63,10),(68,11)]
-NV_table = [(55,6)]
+NV_table = [(node_nums,vehicle_nums)]
 # NV_table = [(50,5),(55,5),(55,6),(60,6)]
 validation_setting = {
-    "D":1280 , "B":64 , "N":55 , "V": 6
+    "D":1280 , "B":64 , "N":node_nums , "V": vehicle_nums
 }
 
 
-
+# from Env.Environment_MaskInit import DSVRP_Environment
+from Env.Environment_Journal import DSVRP_Environment
 def env_maker(batch_size , batch_data , node_num , vehicle_num , vehicle_capacity , StateEQ ,training):
     pos_randomness = r() 
     return DSVRP_Environment(
