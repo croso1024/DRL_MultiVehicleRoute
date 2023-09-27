@@ -80,11 +80,11 @@ class CVRP_DataGenerator:
         # In most Case , the node position is random
 
         Distribution_sample = random() 
-        if Distribution_sample >0.1:    
+        # if Distribution_sample >0.1:    
         #if Distribution_sample > - 1 : 
-            nodes =[ Demand_Node(uniform(0,1),uniform(0,1))  for i in range(self.node_num) ] 
-        else : 
-            nodes = self.RandomClusteringNode()
+        nodes =[ Demand_Node(uniform(0,1),uniform(0,1))  for i in range(self.node_num) ] 
+        # else : 
+            # nodes = self.RandomClusteringNode()
         
         #nodes =[ Demand_Node(uniform(0,1),uniform(0,1))  for i in range(self.node_num) ] 
         # step2 . Get the node features 
