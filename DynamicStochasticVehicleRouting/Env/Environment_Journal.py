@@ -2,9 +2,21 @@
     此Journal版本是基於Environment_MaskInit.py版本而來。
     目前稍微看了一下需要修改的內容,我認為可以沿用車輛剩餘容量為Normal distribution的設置 ,但可以去除截斷
     需要修改training-mode以及Validation-data generator的部份 ,把截斷拿掉就好 , 並且再稍微計算一下demand以及capacity的比例
-    
     主要修改的部份基本上是traffic time這一塊.
 
+
+    2023-10-01補充 : 
+        在開始Verification進行一下檢查 , 主要是看基於MaskInit改來的Journal版本在容量這邊計算是正確的
+        檢查了一下，包含容量關係的改動有: 
+            1. 在reset的時候直接修改1~(v+1)節點的static state , 使其沒有request 
+            2. reset時直接mask掉1~(v+1)的節點 , 因此車輛也不能前往 
+            3. 計算total request的時候有使用到1~(v+1)的部份 , 因此最後計算fulfill rate是直接拿1~(v+1)的容量+車輛實際走得容量 / total request
+        
+        -> 總結來說就是車輛白漂了1~(v+1)這一部份的需求量 , 不需要消耗容量就能完成，
+           因此需要在論文裡面特別註明 , N50V5實際上只有運送44個節點 ( 扣掉depot加上5部車輛的初始位置 )
+
+        
+            
 """
 import torch 
 from torch_geometric.utils import to_dense_batch , mask_to_index 
@@ -442,7 +454,7 @@ class DSVRP_Environment :
     
     def calculate_fulfill_rate(self,batch_idx,path): 
         
-        return  ( torch.sum(self.static_state[batch_idx, 1:self.vehicle_num+1 , 2]) +
+        return  (torch.sum(self.static_state[batch_idx, 1:self.vehicle_num+1 , 2]) +
                  torch.sum(self.static_state[batch_idx,path,2]) )/ self.total_demand[batch_idx]
             
 

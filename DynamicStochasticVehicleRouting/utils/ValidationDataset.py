@@ -44,8 +44,8 @@ def CreateDataset(dataset_size,batch_size, node_num, vehicle_num , journal=False
     print(f"Mean capacity : {CV_setting.mean()}")
     
     Dataset_name = f"D{dataset_size}-B{batch_size}-N{node_num}-V{vehicle_num}" 
-    # torch.save(Dataset , "./model/DynamicStochasticVehicleRouting/Dataset/"+"Data-"+Dataset_name+".pt") 
-    # torch.save(CV_setting ,"./model/DynamicStochasticVehicleRouting/Dataset/"+"CV-"+Dataset_name+".pt" )
+    torch.save(Dataset , "./model/DynamicStochasticVehicleRouting/Dataset/"+"Data-"+Dataset_name+".pt") 
+    torch.save(CV_setting ,"./model/DynamicStochasticVehicleRouting/Dataset/"+"CV-"+Dataset_name+".pt" )
 
 
 def LoadDataset(dataset_size,batch_size,node_num,vehicle_num, maximum_batch_size = None, PMPO=False):

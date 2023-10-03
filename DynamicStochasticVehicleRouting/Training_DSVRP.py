@@ -81,8 +81,8 @@ def env_maker(batch_size , batch_data , node_num , vehicle_num , vehicle_capacit
         vehicle_pos_mode="Random" ,
         StateEQ=StateEQ,
         DE_transform_type=DE_transform_type , 
-        # graph_transform= {"transform":"knn","value":10},
-        graph_transform=None , 
+        graph_transform= {"transform":"knn","value":12},
+        # graph_transform=None , 
         training=training , 
         device =device 
     )

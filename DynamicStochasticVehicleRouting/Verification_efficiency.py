@@ -1,10 +1,16 @@
 """ 
     DSVRP 驗證集測試
+    
+    2023-10-01 : 
+        配合Journal版本 , 在環境中加入KNN , 同時修復了ORTools的DSVRP_solver在計算滿足率的bug , 即他們的1~(v+1)是有demand會扣車輛的
+        因此這邊先把demand_vector[1~(v+1)]也變為 0 , 同時計算這一塊被消除的demand和 作為fix_demand傳入Solver
+        讓OR-Tools計算完後的完成與總需求 , 分子分母都要加上這一塊fix_demand
+        
 """
 from Env.Environment_MaskInit import DSVRP_Environment 
 from torch.distributions import Categorical 
 from utils.DSVRPGenerator import DSVRP_DataGenerator 
-from utils.DSVRP_solver import ORtools_DSVRP
+from utils.DSVRP_solver_Journal import ORtools_DSVRP
 from tqdm import tqdm 
 import argparse ,torch,time  , copy 
 from utils.ValidationDataset import LoadDataset
@@ -34,8 +40,8 @@ def env_maker_validate(batch_size , batch_data  ,capacity_vector, StateEQ    ):
         vehicle_pos_mode="Random" , 
         StateEQ=StateEQ , 
         DE_transform_type=DE_transform_type , 
-        # graph_transform={"transform":"knn" , "value":10} , 
-        graph_transform=None , 
+        graph_transform={"transform":"knn" , "value":12} , 
+        # graph_transform=None , 
         training=False , 
         device = device ,
     )
@@ -234,7 +240,10 @@ def ORTools_DSVRP(validation_set , batch_size ,vehicle_num ,algo="GD" ,time_limi
         for instance in tqdm(batch_data.to_data_list()): 
             start = time.time() 
             demand_vector = (instance.x[:,2]*10000).tolist()
-            demand_vector[0] = 0 
+            # 2023-09-27 : 修正 , demand vector應該是0-(v+1)也都0 , 並且計算fix_demand ,傳入ORTools_DSVRP內補償滿足率計算
+            # demand_vector[0] = 0 
+            fix_demand = sum(demand_vector[1:vehicle_num+1])
+            for i in range(vehicle_num+1) : demand_vector[i] = 0
             dist_matrix = torch.round(instance.node_route_cost*10000).int().tolist()
             # dist_matrix = torch.round(instance.node_route_cost_std*10000).int().tolist()
             dist_matrix_std = torch.round(instance.node_route_cost_std*10000).int().tolist() 
@@ -247,6 +256,7 @@ def ORTools_DSVRP(validation_set , batch_size ,vehicle_num ,algo="GD" ,time_limi
                 capacity_vector= [c*10000 for c in capacity_vector.tolist()], 
                 algo=algo_table[algo],
                 depot_index=0, # Avoid error
+                fix_demand = fix_demand ,
                 time_limit=time_limit 
             ).solve() 
             average_tour_length += tour_length 
@@ -294,7 +304,7 @@ if __name__ == "__main__":
         clip_coe=10,
         temp=1.5
     ).to(device) 
-    model_path = "./model/DynamicStochasticVehicleRouting/checkpoint/N50_v20_n55_realStochastic.pth"
+    model_path = "./model/DynamicStochasticVehicleRouting/checkpoint/N50V5_Journal.pth"
     # model_path = "./model/DynamicStochasticVehicleRouting/checkpoint/N55_v20_0606.pth"
     Agent.load_state_dict(torch.load(model_path))
     total = sum([parameters.nelement() for parameters in Agent.parameters()]) 
@@ -310,26 +320,26 @@ if __name__ == "__main__":
     dataset = LoadDataset(
         dataset_size=dataset_size , batch_size=batch_size , node_num= node_num , vehicle_num= vehicle_num , 
          maximum_batch_size=maximum_batch_size , PMPO=False )
-    # PMPO_dataset  = LoadDataset(
-    #     dataset_size=dataset_size , batch_size=batch_size , node_num= node_num , vehicle_num= vehicle_num , 
-    #      maximum_batch_size=maximum_batch_size , PMPO=True )
+    PMPO_dataset  = LoadDataset(
+        dataset_size=dataset_size , batch_size=batch_size , node_num= node_num , vehicle_num= vehicle_num , 
+         maximum_batch_size=maximum_batch_size , PMPO=True )
     
 
-    # Greedy(Agent=Agent, validation_set=copy.deepcopy(dataset) , batch_size=batch_size , vehicle_nums=vehicle_num  )
+    Greedy(Agent=Agent, validation_set=copy.deepcopy(dataset) , batch_size=batch_size , vehicle_nums=vehicle_num  )
 
-    # PMPO(Agent=Agent, validation_set=copy.deepcopy(PMPO_dataset) , batch_size=batch_size , vehicle_nums=vehicle_num , 
-    #      maximum_batch_size=maximum_batch_size)
+    PMPO(Agent=Agent, validation_set=copy.deepcopy(PMPO_dataset) , batch_size=batch_size , vehicle_nums=vehicle_num , 
+         maximum_batch_size=maximum_batch_size)
 
-    # DE(Agent=Agent, validation_set=copy.deepcopy(dataset), batch_size=batch_size , vehicle_nums=vehicle_num )
+    DE(Agent=Agent, validation_set=copy.deepcopy(dataset), batch_size=batch_size , vehicle_nums=vehicle_num )
 
-    # mix(Agent=Agent, validation_set=copy.deepcopy(PMPO_dataset) , batch_size=batch_size , vehicle_nums=vehicle_num ,maximum_batch_size=maximum_batch_size)
+    mix(Agent=Agent, validation_set=copy.deepcopy(PMPO_dataset) , batch_size=batch_size , vehicle_nums=vehicle_num ,maximum_batch_size=maximum_batch_size)
 
     ORTools_DSVRP(validation_set=dataset , batch_size=batch_size , vehicle_num=vehicle_num  ,  time_limit=10 ,algo="GD")
     
-    ORTools_DSVRP(validation_set=dataset , batch_size=batch_size , vehicle_num=vehicle_num  ,  time_limit=1 ,algo="GL")
-    ORTools_DSVRP(validation_set=dataset , batch_size=batch_size , vehicle_num=vehicle_num  ,  time_limit=2 ,algo="GL")
-    ORTools_DSVRP(validation_set=dataset , batch_size=batch_size , vehicle_num=vehicle_num  ,  time_limit=10 ,algo="GL")
+    # ORTools_DSVRP(validation_set=dataset , batch_size=batch_size , vehicle_num=vehicle_num  ,  time_limit=1 ,algo="GL")
+    # ORTools_DSVRP(validation_set=dataset , batch_size=batch_size , vehicle_num=vehicle_num  ,  time_limit=2 ,algo="GL")
+    # ORTools_DSVRP(validation_set=dataset , batch_size=batch_size , vehicle_num=vehicle_num  ,  time_limit=10 ,algo="GL")
     
-    ORTools_DSVRP(validation_set=dataset , batch_size=batch_size , vehicle_num=vehicle_num  ,  time_limit=1 ,algo="TS")
-    ORTools_DSVRP(validation_set=dataset , batch_size=batch_size , vehicle_num=vehicle_num  ,  time_limit=2 ,algo="TS")
-    ORTools_DSVRP(validation_set=dataset , batch_size=batch_size , vehicle_num=vehicle_num  ,  time_limit=10 ,algo="TS")
+    # ORTools_DSVRP(validation_set=dataset , batch_size=batch_size , vehicle_num=vehicle_num  ,  time_limit=1 ,algo="TS")
+    # ORTools_DSVRP(validation_set=dataset , batch_size=batch_size , vehicle_num=vehicle_num  ,  time_limit=2 ,algo="TS")
+    # ORTools_DSVRP(validation_set=dataset , batch_size=batch_size , vehicle_num=vehicle_num  ,  time_limit=10 ,algo="TS")

@@ -14,7 +14,7 @@ class ORtools_DSVRP(object):
     
     #GUIDED_LOCAL_SEARCH
     def __init__(self,dist_matrix ,dist_matrix_std ,demand_vector , vehicle_num , capacity_vector
-                 , start_pos , depot_index=0, algo="GREEDY_DESCENT",time_limit=None):
+                 , start_pos , depot_index=0 ,algo="GREEDY_DESCENT",time_limit=None):
 
         self.dist_matrix = dist_matrix
         self.dist_matrix_std = dist_matrix_std 
