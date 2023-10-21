@@ -94,6 +94,7 @@ if __name__ == "__main__":
     node_num = arg.node_num 
     vehicle_num = arg.vehicle_num 
     journal = arg.journal
+    if journal : print("Enable Joural Mode!")
 
     CreateDataset(dataset_size=dataset_size, batch_size=batch_size,
                   node_num=node_num,  vehicle_num=vehicle_num ,journal=journal )

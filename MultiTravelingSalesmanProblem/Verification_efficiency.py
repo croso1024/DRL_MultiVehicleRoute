@@ -231,7 +231,7 @@ if __name__ == "__main__":
         clip_coe=10,
         temp=1
     ).to(device) 
-    model_path = "./model/MultiTravelingSalesmanProblem/checkpoint/N100V5_v20k12_DSE_0829.pth"
+    model_path = "./model/MultiTravelingSalesmanProblem/checkpoint/Journal/N100V5_v20k12_DSE_0829.pth"
     Agent.load_state_dict(torch.load(model_path))
     total = sum([parameters.nelement() for parameters in Agent.parameters()]) 
     print(f"Parameters of the Model : {total}")
@@ -243,7 +243,7 @@ if __name__ == "__main__":
     ##################### Prepare dataset   ######################
     print(f"Verification dataset : {dataset_size} instance \n {node_num} nodes per instance with {vehicle_num} vehicles" )
     recorder_file_name = f"N{node_num}V{vehicle_num}"
-    instance_generator = MTSP_DataGenerator(workers=4 , batch_size=batch_size , node_num=node_num)
+    # instance_generator = MTSP_DataGenerator(workers=4 , batch_size=batch_size , node_num=node_num)
     dataset = LoadDataset(
         dataset_size=dataset_size , batch_size=batch_size , node_num= node_num , vehicle_num= vehicle_num , 
          maximum_batch_size=maximum_batch_size , PMPO=False )

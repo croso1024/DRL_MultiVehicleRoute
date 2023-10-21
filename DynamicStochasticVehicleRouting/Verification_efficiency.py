@@ -7,6 +7,7 @@
         讓OR-Tools計算完後的完成與總需求 , 分子分母都要加上這一塊fix_demand
         
 """
+# 對於Journal版本來說 , Environment用MaskInit或Journal基本一樣 , 因為journal主要改了在訓練時的部份
 from Env.Environment_MaskInit import DSVRP_Environment 
 from torch.distributions import Categorical 
 from utils.DSVRPGenerator import DSVRP_DataGenerator 
@@ -304,7 +305,7 @@ if __name__ == "__main__":
         clip_coe=10,
         temp=1.5
     ).to(device) 
-    model_path = "./model/DynamicStochasticVehicleRouting/checkpoint/N50V5_Journal.pth"
+    model_path = "./model/DynamicStochasticVehicleRouting/checkpoint/N50V7_Journal.pth"
     # model_path = "./model/DynamicStochasticVehicleRouting/checkpoint/N55_v20_0606.pth"
     Agent.load_state_dict(torch.load(model_path))
     total = sum([parameters.nelement() for parameters in Agent.parameters()]) 

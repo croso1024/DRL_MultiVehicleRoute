@@ -251,7 +251,6 @@ if __name__ == "__main__":
     argParser.add_argument("-n","--node_num", type=int, default=20)
     argParser.add_argument("-v","--vehicle_num", type=int, default=1)
     argParser.add_argument("-t","--ortools_times", type=int, default=1)
-    argParser.add_argument("-rp","--random_pos", action="store_true", default=False)
     argParser.add_argument("-he","--heterogeneous", action="store_true", default=False)
     argParser.add_argument("-m","--model", type=str, default="RL_agent") 
     arg = argParser.parse_args() 
@@ -260,7 +259,6 @@ if __name__ == "__main__":
     batch_size = arg.batch_size
     node_num = arg.node_num 
     vehicle_num = arg.vehicle_num 
-    random_pos = arg.random_pos 
     heterogeneous = arg.heterogeneous
     ortools_timelimit = arg.ortools_times 
     model_path = "./model/HeterogeneousVehicleRouting/checkpoint/" + arg.model + ".pth" 
@@ -272,7 +270,6 @@ if __name__ == "__main__":
         node_feature_dim=5,
         fleet_feature_dim=7,
         vehicle_feature_dim=6 , 
-        # GCN_prelayer=False , 
         hidden_dim=192 , 
         heads = 6 , 
         num_layers=3 , 
