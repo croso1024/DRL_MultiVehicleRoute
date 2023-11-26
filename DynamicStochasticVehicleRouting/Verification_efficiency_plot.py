@@ -6,6 +6,9 @@
         因此這邊先把demand_vector[1~(v+1)]也變為 0 , 同時計算這一塊被消除的demand和 作為fix_demand傳入Solver
         讓OR-Tools計算完後的完成與總需求 , 分子分母都要加上這一塊fix_demand
         
+    2023-11-11 : 
+        加上vis的引數 , 在Greedy做了一個plot 
+        
 """
 # 對於Journal版本來說 , Environment用MaskInit或Journal基本一樣 , 因為journal主要改了在訓練時的部份
 from Env.Environment_MaskInit import DSVRP_Environment 
@@ -15,6 +18,7 @@ from utils.DSVRP_solver_Journal import ORtools_DSVRP
 from tqdm import tqdm 
 import argparse ,torch,time  , copy 
 from utils.ValidationDataset import LoadDataset
+from utils.RouteVisulizer import RouteVisulizer
 import random , numpy as np 
 
 #############  SEED  ###############
@@ -65,11 +69,26 @@ def Greedy(Agent,validation_set , batch_size , vehicle_nums):
                 action_dist = Agent(batch ,fleet_state, vehicle_state , mask) 
                 action = torch.argmax(action_dist, dim=1,keepdim=False)
                 batch.state , fleet_state , vehicle_state , reward , mask , done = env.step(action.view(batch_size,-1))
-
             minSum_tour , batchwise_fulfill_rate = reward 
             computation_time += time.time() - start 
             average_tour_length += minSum_tour.mean() 
             average_fulfill_rate += batchwise_fulfill_rate.mean() 
+            
+        
+            if visulize : 
+                visulizer = RouteVisulizer(
+                    node_num = node_num , vehicle_num=vehicle_num , method="GREEDY" , 
+                    capacity=True , show=False , store=True , 
+                    store_path="./model/DynamicStochasticVehicleRouting/plot/" 
+                )
+                route = env.get_SplitedRoute()[0]
+                visulizer.Visualize(
+                    fig_id=i , instance=batch , routes=route , objective_value=0
+                )
+                
+            
+            
+            
     print(f"Greedy Complete in {computation_time:.3f} seconds")
     print(f"Average minSum : {average_tour_length/len(validation_set):.3f}")
     print(f"Average fulfill : {average_fulfill_rate/len(validation_set):.3f}")
@@ -278,6 +297,7 @@ if __name__ == "__main__":
     argParser.add_argument("-b","--batch_size", type=int, default=32)
     argParser.add_argument("-n","--node_num", type=int, default=20)
     argParser.add_argument("-v","--vehicle_num", type=int, default=1)
+    argParser.add_argument("-vis","--visulize", action="store_true", default=False)
     argParser.add_argument("-t","--ortools_times", type=int, default=1)
     argParser.add_argument("-trans" , "--transform_type" , type=int , default=8)
     argParser.add_argument("-m","--model", type=str, default="RL_agent") 
@@ -287,6 +307,7 @@ if __name__ == "__main__":
     batch_size = arg.batch_size
     node_num = arg.node_num 
     vehicle_num = arg.vehicle_num 
+    visulize =  arg.visulize 
     ortools_timelimit = arg.ortools_times 
     DE_transform_type = arg.transform_type 
     model_path = "./model/DynamicStochasticVehicleRouting/checkpoint/" + arg.model + ".pth" 
@@ -305,15 +326,15 @@ if __name__ == "__main__":
         clip_coe=10,
         temp=1
     ).to(device) 
-    model_path = "./model/DynamicStochasticVehicleRouting/checkpoint/N100V14_Journal.pth"
+    model_path = "./model/DynamicStochasticVehicleRouting/checkpoint/N50V5_Journal.pth"
     # model_path = "./model/DynamicStochasticVehicleRouting/checkpoint/N55_v20_0606.pth"
     Agent.load_state_dict(torch.load(model_path))
     total = sum([parameters.nelement() for parameters in Agent.parameters()]) 
     print(f"Parameters of the Model : {total}")
     print("--------------\n")
     ################ Testing Parameters   #################
-    DE_transform_type = 8
-    maximum_batch_size = 64
+    DE_transform_type = 8 
+    maximum_batch_size = 32
 
     ##################### Prepare dataset   ######################
     print(f"Verification dataset : {dataset_size} instance \n {node_num} nodes per instance with {vehicle_num} vehicles" )
@@ -321,21 +342,21 @@ if __name__ == "__main__":
     dataset = LoadDataset(
         dataset_size=dataset_size , batch_size=batch_size , node_num= node_num , vehicle_num= vehicle_num , 
          maximum_batch_size=maximum_batch_size , PMPO=False )
-    PMPO_dataset  = LoadDataset(
-        dataset_size=dataset_size , batch_size=batch_size , node_num= node_num , vehicle_num= vehicle_num , 
-         maximum_batch_size=maximum_batch_size , PMPO=True )
+    # PMPO_dataset  = LoadDataset(
+    #     dataset_size=dataset_size , batch_size=batch_size , node_num= node_num , vehicle_num= vehicle_num , 
+    #      maximum_batch_size=maximum_batch_size , PMPO=True )
     
 
     Greedy(Agent=Agent, validation_set=copy.deepcopy(dataset) , batch_size=batch_size , vehicle_nums=vehicle_num  )
 
-    PMPO(Agent=Agent, validation_set=copy.deepcopy(PMPO_dataset) , batch_size=batch_size , vehicle_nums=vehicle_num , 
-         maximum_batch_size=maximum_batch_size)
+    # PMPO(Agent=Agent, validation_set=copy.deepcopy(PMPO_dataset) , batch_size=batch_size , vehicle_nums=vehicle_num , 
+    #      maximum_batch_size=maximum_batch_size)
 
-    DE(Agent=Agent, validation_set=copy.deepcopy(dataset), batch_size=batch_size , vehicle_nums=vehicle_num )
+    # DE(Agent=Agent, validation_set=copy.deepcopy(dataset), batch_size=batch_size , vehicle_nums=vehicle_num )
 
-    mix(Agent=Agent, validation_set=copy.deepcopy(PMPO_dataset) , batch_size=batch_size , vehicle_nums=vehicle_num ,maximum_batch_size=maximum_batch_size)
+    # mix(Agent=Agent, validation_set=copy.deepcopy(PMPO_dataset) , batch_size=batch_size , vehicle_nums=vehicle_num ,maximum_batch_size=maximum_batch_size)
 
-    ORTools_DSVRP(validation_set=dataset , batch_size=batch_size , vehicle_num=vehicle_num  ,  time_limit=100 ,algo="GD")
+    # ORTools_DSVRP(validation_set=dataset , batch_size=batch_size , vehicle_num=vehicle_num  ,  time_limit=10 ,algo="GD")
     
     # ORTools_DSVRP(validation_set=dataset , batch_size=batch_size , vehicle_num=vehicle_num  ,  time_limit=1 ,algo="GL")
     # ORTools_DSVRP(validation_set=dataset , batch_size=batch_size , vehicle_num=vehicle_num  ,  time_limit=2 ,algo="GL")

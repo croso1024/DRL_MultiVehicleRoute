@@ -34,13 +34,13 @@ torch.backends.cudnn.benchmark = False
 torch.backends.cudnn.deterministic = True
 torch.utils.backcompat.broadcast_warning.enabled = True 
 ########## Parameters ############## 
-num_epoch , per_dataset_size , batch_size = 200, 200  , 96
-lr , decay_rate  , grad_cummulate = 1e-4, 1e-6   , 2
+num_epoch , per_dataset_size , batch_size = 200, 800  , 24
+lr , decay_rate  , grad_cummulate = 1e-4, 1e-6   , 8
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 # device = 'cpu'
 writter = SummaryWriter("./model/HeterogeneousVehicleRouting/training_log")
 ############ Model ################## 
-node_nums , vehicle_nums = 50 , 5
+node_nums , vehicle_nums =100 , 14
 
 node_features_dim , fleet_features_dim , vehicle_features_dim = 5, 7 , 6
 hidden_dim = 192
@@ -191,7 +191,7 @@ def training():
         validation_reward , score = validation(dataset=validation_set) 
         score_logger.append(score.cpu())
         if score< best : 
-            torch.save(Agent.state_dict() , "./model/HeterogeneousVehicleRouting/checkpoint/N50V5_Journal.pth")
+            torch.save(Agent.state_dict() , "./model/HeterogeneousVehicleRouting/checkpoint/N100V14_Journal.pth")
             print(f"\n\n -- Save the model parameters \n\n")
             best = score
         

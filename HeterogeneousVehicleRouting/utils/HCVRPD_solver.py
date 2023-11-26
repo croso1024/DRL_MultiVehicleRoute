@@ -18,7 +18,7 @@ class ORtools_HCVRPD(object):
     
     
     def __init__(self,dist_matrix ,demand_vector ,  vehicle_num=1 ,  
-                 depot_index=0 ,  capacity_vector=1 , velocity_vector=1  ,algo="GUIDED_LOCAL_SEARCH" ,time_limit=None): 
+                 depot_index=0 ,  capacity_vector=1 , velocity_vector=1  ,algo="GREEDY_DESCENT" ,time_limit=None): 
         self.dist_matrix = dist_matrix 
         assert demand_vector[depot_index] == 0 , "Depot demand must be zero"
         self.demand_vector = demand_vector 

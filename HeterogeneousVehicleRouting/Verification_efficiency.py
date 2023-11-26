@@ -275,15 +275,15 @@ if __name__ == "__main__":
         num_layers=3 , 
         skip_connection=True , 
         clip_coe=10,
-        temp=1.5
+        temp=1
     ).to(device) 
-    model_path = "./model/HeterogeneousVehicleRouting/checkpoint/N55H_v20k12_0604.pth"
+    model_path = "./model/HeterogeneousVehicleRouting/checkpoint/N100V14_Journal.pth"
     Agent.load_state_dict(torch.load(model_path))
     total = sum([parameters.nelement() for parameters in Agent.parameters()]) 
     print(f"Parameters of the Model : {total}")
     print("--------------\n")
     ################ Testing Parameters   #################
-    DE_transform_type = 16
+    DE_transform_type = 8
     maximum_batch_size = 64
 
     ##################### Prepare dataset   ######################
@@ -307,8 +307,7 @@ if __name__ == "__main__":
         mix(Agent=Agent, validation_set=copy.deepcopy(PMPO_dataset) , batch_size=batch_size , vehicle_nums=vehicle_num ,maximum_batch_size=maximum_batch_size)
     
     # PMPO_sample(Agent=Agent, validation_set=copy.deepcopy(PMPO_dataset) , batch_size=batch_size , vehicle_nums=vehicle_num  ,maximum_batch_size=maximum_batch_size , sample_size=5 )
-    #ORTools_HCVRP(validation_set=dataset , batch_size=batch_size , vehicle_num=vehicle_num , 
-    #           time_limit= ortools_timelimit)
+    #ORTools_HCVRP(validation_set=dataset , batch_size=batch_size , vehicle_num=vehicle_num ,          time_limit= 20)
     # ORTools_HCVRP(validation_set=dataset , batch_size=batch_size , vehicle_num=vehicle_num , 
     #         time_limit= 2)
 

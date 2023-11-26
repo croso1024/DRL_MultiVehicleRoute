@@ -100,10 +100,10 @@ def PMPO_sample(Agent ,validation_set ,batch_size,vehicle_nums  , maximum_batch_
     batch_size = batch_size if not maximum_batch_size else maximum_batch_size
     PMPO_dataset = validation_set
     with torch.no_grad(): 
-        for i ,  batch in tqdm(enumerate( copy.deepcopy(PMPO_dataset) )): 
+        for i ,  ori_batch in tqdm(enumerate( copy.deepcopy(PMPO_dataset) )): 
             start = time.time() 
             # recorder for this batch 
-            batch = copy.deepcopy(batch)
+            batch = copy.deepcopy(ori_batch)
             best_objective = torch.ones(size=(batch_size,1) , dtype=torch.float32,device=device) * 100 
             for sample_times in range(sample_size) : 
                 batch.to(device) 
@@ -257,16 +257,16 @@ if __name__ == "__main__":
     Greedy(Agent=Agent, validation_set=copy.deepcopy(dataset) , batch_size=batch_size  , vehicle_nums=vehicle_num , 
            )
 
-    PMPO(Agent=Agent, validation_set=copy.deepcopy(PMPO_dataset) , batch_size=batch_size , vehicle_nums=vehicle_num , 
-       maximum_batch_size=maximum_batch_size)
+    # PMPO(Agent=Agent, validation_set=copy.deepcopy(PMPO_dataset) , batch_size=batch_size , vehicle_nums=vehicle_num , 
+    #    maximum_batch_size=maximum_batch_size)
 
     PMPO_sample(Agent=Agent, validation_set=copy.deepcopy(PMPO_dataset) , batch_size=batch_size , vehicle_nums=vehicle_num , 
-            maximum_batch_size=maximum_batch_size , sample_size=10 )
+            maximum_batch_size=maximum_batch_size , sample_size=8 )
 
-    DE(Agent=Agent , validation_set=copy.deepcopy(dataset),batch_size=batch_size ,vehicle_num = vehicle_num ,
-        maximum_batch_size=maximum_batch_size )
+    # DE(Agent=Agent , validation_set=copy.deepcopy(dataset),batch_size=batch_size ,vehicle_num = vehicle_num ,
+    #     maximum_batch_size=maximum_batch_size )
 
-    # ORTools_MTSP(validation_set=dataset , batch_size=batch_size , vehicle_num=vehicle_num  ,  time_limit=ortools_timelimit*300 ,algo='GD')
+    #ORTools_MTSP(validation_set=dataset , batch_size=batch_size , vehicle_num=vehicle_num  ,  time_limit=ortools_timelimit*300 ,algo='GD')
     
     # ORTools_MTSP(validation_set=dataset , batch_size=batch_size , vehicle_num=vehicle_num  ,  time_limit=ortools_timelimit*2 ,algo="GL")
     # ORTools_MTSP(validation_set=dataset , batch_size=batch_size , vehicle_num=vehicle_num  ,  time_limit=ortools_timelimit*5 ,algo="GL")

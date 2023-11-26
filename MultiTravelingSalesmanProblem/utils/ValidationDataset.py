@@ -36,8 +36,8 @@ def CreateDataset(dataset_size,batch_size, node_num, vehicle_num ) :
 
 
 
-def LoadDataset(dataset_size,batch_size,node_num,vehicle_num, maximum_batch_size = None, PMPO=False):
-    """ 
+def LoadDataset(dataset_size,batch_size,node_num,vehicle_num, maximum_batch_size = None, PMPO=False ):
+    """  
         用來載入保存好的Dataset 與CV設定 , 在此可以調整原先的Batch大小(只能增加不能減少,但增加是指同一個batch的擴充即PMPO) , 
         主要有兩種Case : 
         1. PMPO(最多會將原先Dataset的Batch-size變為8倍 ,最高到maximum-batch-size)
