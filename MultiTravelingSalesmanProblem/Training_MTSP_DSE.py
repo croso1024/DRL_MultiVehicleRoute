@@ -25,16 +25,16 @@ torch.backends.cudnn.benchmark = False
 torch.backends.cudnn.deterministic = True
 torch.utils.backcompat.broadcast_warning.enabled = True 
 ########## Parameters ############## 
-num_epoch , per_dataset_size , batch_size = 200, 200 , 96
+num_epoch , per_dataset_size , batch_size = 10, 20 , 16
 validation_size = 6 # 1 validation_size x batch 
 lr , decay_rate  , grad_cummulate = 1e-4, 1e-6   , 2
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 # device = 'cpu'
 writter = SummaryWriter("./model/MultiTravelingSalesmanProblem/training_log")
 ############ Model ################## 
-node_nums , vehicle_nums = 50,7
+node_nums , vehicle_nums = 50,5
 node_features_dim , fleet_features_dim , vehicle_features_dim = 4, 5 , 4
-hidden_dim =192 
+hidden_dim = 192 
 from net.ver20.PolicyNetwork import PolicyNetwork
 Agent = PolicyNetwork(
     node_feature_dim=node_features_dim , 
