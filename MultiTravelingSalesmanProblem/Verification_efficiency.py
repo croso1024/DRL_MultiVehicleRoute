@@ -231,7 +231,7 @@ if __name__ == "__main__":
         clip_coe=10,
         temp=1
     ).to(device) 
-    model_path = "./model/MultiTravelingSalesmanProblem/checkpoint/Journal/N100V5_v20k12_DSE_0829.pth"
+    # model_path = "./model/MultiTravelingSalesmanProblem/checkpoint/Journal/N100V5_v20k12_DSE_0829.pth"
     Agent.load_state_dict(torch.load(model_path))
     total = sum([parameters.nelement() for parameters in Agent.parameters()]) 
     print(f"Parameters of the Model : {total}")

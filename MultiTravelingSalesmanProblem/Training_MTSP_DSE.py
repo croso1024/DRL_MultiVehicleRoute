@@ -26,7 +26,6 @@ torch.backends.cudnn.deterministic = True
 torch.utils.backcompat.broadcast_warning.enabled = True 
 ########## Parameters ############## 
 num_epoch , per_dataset_size , batch_size = 10, 20 , 16
-validation_size = 6 # 1 validation_size x batch 
 lr , decay_rate  , grad_cummulate = 1e-4, 1e-6   , 2
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 # device = 'cpu'
