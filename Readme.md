@@ -24,13 +24,30 @@ proposed model demonstrates a preference for cost-reducing route decisions. Comp
 to the benchmark algorithm, it achieves a 14.7% reduction in transportation costs while
 incurring a 9.3% loss in demand fulfill rate.
 
-
 ### Vehicle Routing Problem 
+
+The Vehicle Routing Problem (VRP) refers to the optimization challenge of organizing fleet routes efficiently given specific customer nodes and their demands. The aim is to fulfill customer requirements while satisfying optimization criteria such as task timing, minimizing energy consumption, and other relevant metrics.
+
 <div style="display:inline">
-<img src="./photo/VRP.png" style="zoom:70%;" >
-<img src="./photo/OutputDemo.gif" style="zoom:67%;" >
+<img src="./photo/VRP.png" style="zoom:65%;" >
+<img src="./photo/OutputDemo.gif" style="zoom:60%;" >
 </div>
 
-###  MTSP(Multi Traveling Salesman Problem)
+###  Multi Traveling Salesman Problem ( MTSP )
 
-<img src="./photo/MTSP_DEMO.png">
+The Multi Traveling Salesman Problem  focuses solely on the positions of customer nodes and depot nodes in logistics, without considering customer demands and vehicle characteristics. It is one of the most common types in both machine learning and non-machine learning researchs, serving as a benchmark for testing the effectiveness of frameworks in this paper. We adopt the Min-Max criterion for optimization, which involves minimizing the highest cost among all vehicles to achieve load balancing.
+
+<img src="./photo/MTSP_DEMO.png" style="zoom:67%;" >
+
+### Heterogenous Vehicle Routing Problem (HVRP) 
+
+
+The Heterogeneous Vehicle Routing Problem (HVRP), based on the MTSP, incorporates varying demands at customer nodes along with assigning different characteristics to vehicles such as their carrying capacities and velocitys. It also allows vehicles to skip service nodes under specific circumstances. The complexity of route planning significantly increases due to considering both node demands and vehicle characteristics, as evident in the planned results on the validation set illustrated below.
+
+<img src="./photo/HVRP_DEMO.png" style="zoom:67%;" >
+
+### Dynamic Stochastic Vehicle Routing Problem ( DSVRP ) 
+
+The Dynamic Stochastic Vehicle Routing Problem (DSVRP) involves introducing randomness and dynamic demand variations at nodes as vehicles execute tasks. Additionally, the traffic times between nodes transition from fixed values to reference values with some degree of randomness. This scenario setting is for path planning applications that are closer to reality. The figure below illustrates the dynamic and stochastic vehicles routing experiments conducted in the paper, utilizing OSMnx to obtain a node map of Taipei City. Selected locations within the city were used for experimentation.
+
+<img src="./photo/Taipei.gif" style="zoom:67%;" >
